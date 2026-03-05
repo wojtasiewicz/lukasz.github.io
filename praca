@@ -1,0 +1,3127 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WorkLog CRM</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --card: #18181f;
+    --border: #2a2a38;
+    --accent: #ff6b35;
+    --accent2: #7c3aed;
+    --text: #f0f0ff;
+    --muted: #8888aa;
+    --success: #22c55e;
+    --danger: #ef4444;
+    --employer: #ff6b35;
+    --employee: #7c3aed;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── NOISE OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 999;
+  }
+
+  /* ── LOGIN SCREEN ── */
+  #login-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 2rem;
+    animation: fadeIn 0.6s ease;
+  }
+
+  .login-logo {
+    font-family: 'Syne', sans-serif;
+    font-size: 2.8rem;
+    font-weight: 800;
+    letter-spacing: -2px;
+    margin-bottom: 0.3rem;
+  }
+  .login-logo span { color: var(--accent); }
+
+  .login-sub {
+    color: var(--muted);
+    font-size: 0.8rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 3rem;
+  }
+
+  .role-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    max-width: 560px;
+    width: 100%;
+  }
+
+  .role-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .role-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at center, rgba(255,107,53,0.08) 0%, transparent 60%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .role-card.employee::before {
+    background: radial-gradient(circle at center, rgba(124,58,237,0.1) 0%, transparent 60%);
+  }
+  .role-card:hover { border-color: var(--accent); transform: translateY(-4px); }
+  .role-card:hover::before { opacity: 1; }
+  .role-card.employee:hover { border-color: var(--employee); }
+
+  .role-icon { font-size: 2.5rem; margin-bottom: 1rem; }
+  .role-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+  }
+  .role-desc { color: var(--muted); font-size: 0.72rem; line-height: 1.5; }
+
+  /* ── LOGIN FORM ── */
+  .login-form {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 2.5rem;
+    max-width: 420px;
+    width: 100%;
+    animation: slideUp 0.4s ease;
+  }
+
+  .form-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 0.3rem;
+  }
+  .form-subtitle { color: var(--muted); font-size: 0.75rem; margin-bottom: 2rem; }
+
+  .field { margin-bottom: 1.2rem; }
+  .field label {
+    display: block;
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.5rem;
+  }
+  .field input, .field select, .field textarea {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.8rem 1rem;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    transition: border-color 0.2s;
+    outline: none;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    border-color: var(--accent);
+  }
+  .field textarea { resize: vertical; min-height: 90px; }
+  .field select option { background: var(--surface); }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.8rem 1.6rem;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82rem;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    transition: all 0.2s ease;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #ff8055; transform: translateY(-1px); }
+  .btn-secondary { background: var(--employee); color: #fff; }
+  .btn-secondary:hover { background: #9d5df0; transform: translateY(-1px); }
+  .btn-ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { border-color: var(--muted); color: var(--text); }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-danger:hover { opacity: 0.85; }
+  .btn-sm { padding: 0.4rem 0.9rem; font-size: 0.72rem; }
+  .btn-full { width: 100%; justify-content: center; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .back-link {
+    color: var(--muted);
+    font-size: 0.72rem;
+    cursor: pointer;
+    margin-top: 1.2rem;
+    text-align: center;
+    transition: color 0.2s;
+    display: block;
+  }
+  .back-link:hover { color: var(--text); }
+
+  /* ── APP LAYOUT ── */
+  #app-screen { display: none; min-height: 100vh; flex-direction: column; }
+
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 1rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .topbar-logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.2rem;
+    letter-spacing: -1px;
+  }
+  .topbar-logo span { color: var(--accent); }
+
+  .topbar-right { display: flex; align-items: center; gap: 1rem; }
+
+  .user-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.75rem;
+  }
+  .user-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  .user-dot.emp { background: var(--employee); }
+
+  .main-content {
+    flex: 1;
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex;
+    gap: 0.3rem;
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 0.3rem;
+    margin-bottom: 2rem;
+    border: 1px solid var(--border);
+    width: fit-content;
+  }
+  .tab {
+    padding: 0.5rem 1.2rem;
+    border-radius: 9px;
+    cursor: pointer;
+    font-size: 0.78rem;
+    color: var(--muted);
+    transition: all 0.2s;
+    border: none;
+    background: transparent;
+    font-family: 'DM Mono', monospace;
+  }
+  .tab.active {
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  /* ── SECTION HEADER ── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+  }
+  .section-title span { color: var(--muted); font-size: 0.8rem; font-family: 'DM Mono', monospace; font-weight: 400; margin-left: 0.5rem; }
+
+  /* ── CARDS GRID ── */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+
+  /* ── EMPLOYEE CARD ── */
+  .employee-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.4rem;
+    transition: all 0.2s;
+    animation: fadeIn 0.3s ease;
+  }
+  .employee-card:hover { border-color: var(--employee); }
+
+  .emp-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+  .emp-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--employee), #a855f7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+  .emp-info { flex: 1; }
+  .emp-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.95rem; }
+  .emp-pos { color: var(--muted); font-size: 0.7rem; }
+
+  .emp-stats {
+    display: flex;
+    gap: 0.8rem;
+    margin-bottom: 1rem;
+  }
+  .stat {
+    flex: 1;
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 0.6rem;
+    text-align: center;
+  }
+  .stat-num { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.1rem; color: var(--employee); }
+  .stat-label { color: var(--muted); font-size: 0.62rem; }
+
+  .emp-actions { display: flex; gap: 0.5rem; }
+
+  /* ── LOG ENTRIES ── */
+  .log-list { display: flex; flex-direction: column; gap: 0.8rem; }
+
+  .log-entry {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.3rem;
+    animation: slideUp 0.3s ease;
+    transition: border-color 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .log-entry::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--employee);
+    border-radius: 3px 0 0 3px;
+  }
+  .log-entry:hover { border-color: var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+
+  .log-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 0.8rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .log-meta { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; }
+  .log-emp {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--employee);
+  }
+  .log-client {
+    font-size: 0.78rem;
+    background: rgba(124,58,237,0.15);
+    border: 1px solid rgba(124,58,237,0.3);
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+    color: #c4b5fd;
+  }
+  .log-date { color: var(--muted); font-size: 0.7rem; }
+
+  .log-topic {
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 0.5rem;
+  }
+  .log-notes { color: #c8c8e0; font-size: 0.8rem; line-height: 1.6; }
+
+  .log-tags { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.8rem; }
+  .tag {
+    font-size: 0.65rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 5px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+
+  /* ── FORM CARD ── */
+  .form-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2rem;
+    max-width: 600px;
+  }
+
+  /* ── STATS GRID ── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.5rem;
+    text-align: center;
+  }
+  .stat-card .big-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: var(--accent);
+  }
+  .stat-card .big-num.emp { color: var(--employee); }
+  .stat-card .big-num.green { color: var(--success); }
+  .stat-card p { color: var(--muted); font-size: 0.72rem; margin-top: 0.2rem; }
+
+  /* ── EMPTY STATE ── */
+  .empty {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--muted);
+  }
+  .empty-icon { font-size: 3rem; margin-bottom: 1rem; }
+  .empty h3 { font-family: 'Syne', sans-serif; font-weight: 700; margin-bottom: 0.5rem; color: var(--text); }
+  .empty p { font-size: 0.8rem; }
+
+  /* ── FILTER BAR ── */
+  .filter-bar {
+    display: flex;
+    gap: 0.8rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+  .filter-bar input, .filter-bar select {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.5rem 0.9rem;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    outline: none;
+  }
+  .filter-bar input:focus, .filter-bar select:focus { border-color: var(--accent); }
+  .filter-bar input { flex: 1; min-width: 200px; }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background: var(--success);
+    color: #fff;
+    padding: 0.8rem 1.4rem;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    font-family: 'DM Mono', monospace;
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.3s ease;
+    z-index: 9999;
+  }
+  #toast.show { transform: translateY(0); opacity: 1; }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+    animation: fadeIn 0.2s ease;
+  }
+  .modal {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 2rem;
+    max-width: 480px;
+    width: 100%;
+    animation: slideUp 0.3s ease;
+  }
+  .modal-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 1.2rem;
+    margin-bottom: 1.5rem;
+  }
+  .modal-actions { display: flex; gap: 0.8rem; margin-top: 1.5rem; justify-content: flex-end; }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ── DIVIDER ── */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
+
+  /* ── ERROR ── */
+  .error-msg {
+    color: var(--danger);
+    font-size: 0.72rem;
+    margin-top: 0.4rem;
+    display: none;
+  }
+
+  /* ── LOG DETAIL FULLSCREEN MODAL ── */
+  #log-detail-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 1.5rem;
+    animation: fadeIn 0.25s ease;
+  }
+
+  .log-detail-panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    width: 100%;
+    max-width: 760px;
+    max-height: 92vh;
+    overflow-y: auto;
+    animation: slideUp 0.35s cubic-bezier(0.22,1,0.36,1);
+    position: relative;
+  }
+
+  .log-detail-hero {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #1a1a2e 100%);
+    border-radius: 24px 24px 0 0;
+    padding: 2.5rem 2.5rem 2rem;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+  .log-detail-hero::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 220px; height: 220px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(124,58,237,0.18) 0%, transparent 70%);
+  }
+
+  .log-detail-close {
+    position: absolute;
+    top: 1.2rem; right: 1.2rem;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    z-index: 1;
+  }
+  .log-detail-close:hover { background: rgba(255,255,255,0.12); color: var(--text); }
+
+  .log-detail-badge-row {
+    display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 1.2rem;
+  }
+
+  .detail-badge {
+    font-size: 0.68rem;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.5px;
+  }
+  .detail-badge.emp-badge {
+    background: rgba(124,58,237,0.2);
+    border: 1px solid rgba(124,58,237,0.4);
+    color: #c4b5fd;
+  }
+  .detail-badge.result-pozytywny { background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.35); color: #86efac; }
+  .detail-badge.result-neutralny { background: rgba(148,163,184,0.12); border: 1px solid rgba(148,163,184,0.25); color: #cbd5e1; }
+  .detail-badge.result-negatywny { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #fca5a5; }
+  .detail-badge.result-do-kontaktu { background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.3); color: #93c5fd; }
+
+  .log-detail-client {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-bottom: 0.4rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .log-detail-topic {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.9rem;
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: -1px;
+    margin-bottom: 0.8rem;
+  }
+  .log-detail-date {
+    color: var(--muted);
+    font-size: 0.73rem;
+  }
+
+  .log-detail-body { padding: 2rem 2.5rem 2.5rem; }
+
+  .detail-section { margin-bottom: 2rem; }
+  .detail-section-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 2.5px;
+    color: var(--muted);
+    margin-bottom: 0.8rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .detail-section-content {
+    font-size: 0.9rem;
+    line-height: 1.8;
+    color: #d0d0f0;
+    white-space: pre-wrap;
+  }
+
+  .detail-tags { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .detail-tag {
+    font-size: 0.72rem;
+    padding: 0.3rem 0.8rem;
+    border-radius: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+
+  .detail-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  .detail-info-item {
+    background: var(--surface);
+    border-radius: 10px;
+    padding: 1rem;
+  }
+  .detail-info-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 0.4rem; }
+  .detail-info-value { font-size: 0.88rem; color: var(--text); font-family: 'Syne', sans-serif; font-weight: 600; }
+
+  /* ── CLICKABLE LOG ENTRY ── */
+  .log-entry { cursor: pointer; }
+  .log-entry:hover { border-color: var(--employee) !important; box-shadow: 0 4px 24px rgba(124,58,237,0.15); }
+  .log-entry-hint {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--muted);
+    font-size: 0.67rem;
+    margin-top: 0.7rem;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .log-entry:hover .log-entry-hint { opacity: 1; }
+
+  /* ── PROFILE PHOTO ── */
+  .avatar-upload-wrap {
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+    margin-bottom: 1.5rem;
+  }
+  .avatar-preview {
+    width: 80px;
+    height: 80px;
+    border-radius: 16px;
+    object-fit: cover;
+    border: 2px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    overflow: hidden;
+    flex-shrink: 0;
+    transition: border-color 0.2s;
+  }
+  .avatar-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 14px;
+  }
+  .avatar-upload-info { flex: 1; }
+  .avatar-upload-info p { color: var(--muted); font-size: 0.72rem; line-height: 1.6; margin-top: 0.3rem; }
+  .avatar-file-input { display: none; }
+  .avatar-upload-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: 1px dashed var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'DM Mono', monospace;
+  }
+  .avatar-upload-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .avatar-remove-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-size: 0.72rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'DM Mono', monospace;
+    margin-top: 0.4rem;
+  }
+  .avatar-remove-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+  /* ── TOPBAR AVATAR ── */
+  .topbar-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+  }
+  .topbar-avatar-placeholder {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    font-family: 'Syne', sans-serif;
+    flex-shrink: 0;
+  }
+
+  /* ── EMP AVATAR WITH PHOTO ── */
+  .emp-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 10px;
+  }
+
+  /* ── SETTINGS ── */
+  .settings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 1.5rem;
+    max-width: 800px;
+  }
+  .settings-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.8rem;
+  }
+  .settings-card-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 0.4rem;
+  }
+  .settings-card-desc {
+    color: var(--muted);
+    font-size: 0.75rem;
+    line-height: 1.5;
+  }
+
+  /* ── PASSWORD INPUT WITH TOGGLE ── */
+  .pass-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .pass-input-wrap input {
+    padding-right: 2.8rem;
+  }
+  .pass-toggle {
+    position: absolute;
+    right: 0.6rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 0.3rem;
+    color: var(--muted);
+    transition: color 0.2s;
+    line-height: 1;
+  }
+  .pass-toggle:hover { color: var(--text); }
+
+  /* ── EMPLOYEE CARD PASSWORD ROW ── */
+  .emp-pass-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.5rem 0.8rem;
+    margin-bottom: 0.8rem;
+    font-size: 0.75rem;
+  }
+  .emp-pass-label { color: var(--muted); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; flex-shrink: 0; }
+  .emp-pass-value { font-family: 'DM Mono', monospace; flex: 1; letter-spacing: 2px; }
+  .emp-pass-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 0.8rem;
+    padding: 0;
+    transition: color 0.2s;
+    flex-shrink: 0;
+  }
+  .emp-pass-toggle:hover { color: var(--accent); }
+
+  /* ── CLIENT CARD ── */
+  .client-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.4rem;
+    transition: all 0.2s;
+    animation: fadeIn 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .client-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--accent);
+    border-radius: 3px 0 0 3px;
+  }
+  .client-card:hover { border-color: var(--accent); }
+  .client-card-header { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 0.8rem; }
+  .client-avatar {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent), #ff9a6c);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; flex-shrink: 0;
+  }
+  .client-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.95rem; }
+  .client-industry { color: var(--muted); font-size: 0.7rem; }
+  .client-notes-preview { color: var(--muted); font-size: 0.75rem; line-height: 1.5; margin-bottom: 0.8rem; }
+  .client-stats { display: flex; gap: 0.6rem; margin-bottom: 0.8rem; }
+  .client-stat {
+    flex: 1; background: var(--surface); border-radius: 7px;
+    padding: 0.5rem; text-align: center;
+  }
+  .client-stat-num { font-family: 'Syne', sans-serif; font-weight: 700; color: var(--accent); font-size: 1rem; }
+  .client-stat-label { color: var(--muted); font-size: 0.6rem; }
+
+  /* ── USER DROPDOWN ── */
+  .user-badge-wrap {
+    position: relative;
+  }
+  .user-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    user-select: none;
+  }
+  .user-badge:hover, .user-badge-wrap:hover .user-badge { border-color: var(--accent); background: var(--surface); }
+
+  .user-dropdown {
+    position: absolute;
+    top: calc(100% + 2px);
+    right: 0;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    min-width: 220px;
+    padding: 0.5rem;
+    z-index: 500;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-8px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+  /* invisible bridge so mouse can travel from badge to dropdown without gap */
+  .user-badge-wrap::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    right: 0;
+    width: 100%;
+    height: 12px;
+  }
+  .user-badge-wrap:hover .user-dropdown {
+    opacity: 1;
+    pointer-events: all;
+    transform: translateY(0);
+  }
+  .user-dropdown-header {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.6rem 0.6rem 0.8rem;
+  }
+  .user-dropdown-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 0.3rem 0;
+  }
+  .user-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+    padding: 0.55rem 0.8rem;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: background 0.15s;
+    text-align: left;
+  }
+  .user-dropdown-item:hover { background: var(--surface); }
+  .user-dropdown-item.danger { color: var(--danger); }
+  .user-dropdown-item.danger:hover { background: rgba(239,68,68,0.1); }
+
+  /* ── CHAT TOPBAR BTN ── */
+  .chat-topbar-btn {
+    position: relative;
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .chat-topbar-btn:hover { border-color: var(--accent); background: var(--surface); }
+  .chat-unread-badge {
+    position: absolute;
+    top: -5px; right: -5px;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 10px;
+    font-size: 0.6rem;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    padding: 0 0.3rem;
+    min-width: 16px;
+    text-align: center;
+    line-height: 16px;
+    height: 16px;
+  }
+
+  /* ── CHAT PANEL (SLIDE-IN) ── */
+  #chat-panel {
+    position: fixed;
+    top: 0; right: 0; bottom: 0;
+    width: 380px;
+    max-width: 100vw;
+    background: var(--card);
+    border-left: 1px solid var(--border);
+    z-index: 800;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.35s cubic-bezier(0.22,1,0.36,1);
+    box-shadow: -8px 0 32px rgba(0,0,0,0.4);
+  }
+  #chat-panel.open { transform: translateX(0); }
+
+  #chat-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 799;
+    display: none;
+    backdrop-filter: blur(2px);
+  }
+  #chat-backdrop.open { display: block; }
+
+  .chat-panel-header {
+    padding: 1.2rem 1.4rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .chat-panel-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem; }
+  .chat-close-btn {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+  }
+  .chat-close-btn:hover { color: var(--text); border-color: var(--muted); }
+
+  /* Conversation list (employer view) */
+  .chat-conv-list { flex: 1; overflow-y: auto; padding: 0.8rem; }
+  .chat-conv-item {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.8rem;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+    position: relative;
+  }
+  .chat-conv-item:hover { background: var(--surface); }
+  .chat-conv-item.active { background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.25); }
+  .chat-conv-avatar {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--employee), #a855f7);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.9rem;
+    flex-shrink: 0; overflow: hidden;
+  }
+  .chat-conv-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; }
+  .chat-conv-info { flex: 1; min-width: 0; }
+  .chat-conv-name { font-family: 'Syne', sans-serif; font-weight: 600; font-size: 0.85rem; }
+  .chat-conv-preview { color: var(--muted); font-size: 0.7rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 0.1rem; }
+  .chat-conv-meta { text-align: right; flex-shrink: 0; }
+  .chat-conv-time { color: var(--muted); font-size: 0.65rem; }
+  .chat-conv-unread {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 10px;
+    font-size: 0.6rem;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    padding: 0.1rem 0.4rem;
+    min-width: 18px;
+    text-align: center;
+    margin-top: 0.2rem;
+  }
+
+  /* Chat window */
+  .chat-window { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  .chat-window-header {
+    padding: 1rem 1.2rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    flex-shrink: 0;
+  }
+  .chat-back-btn {
+    background: none; border: none; color: var(--muted);
+    cursor: pointer; font-size: 1.1rem; padding: 0;
+    transition: color 0.2s;
+  }
+  .chat-back-btn:hover { color: var(--text); }
+  .chat-window-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.9rem; }
+  .chat-window-sub { color: var(--muted); font-size: 0.68rem; }
+
+  .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    scroll-behavior: smooth;
+  }
+  .chat-msg {
+    max-width: 78%;
+    padding: 0.65rem 0.9rem;
+    border-radius: 14px;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    position: relative;
+    word-break: break-word;
+  }
+  .chat-msg.sent {
+    background: var(--employee);
+    color: #fff;
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+  }
+  .chat-msg.received {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+  }
+  .chat-msg.sent.employer-msg { background: var(--accent); }
+  .chat-msg-time { font-size: 0.6rem; opacity: 0.65; margin-top: 0.3rem; display: block; }
+  .chat-msg.sent .chat-msg-time { text-align: right; }
+
+  .chat-date-sep {
+    text-align: center;
+    font-size: 0.65rem;
+    color: var(--muted);
+    margin: 0.5rem 0;
+    position: relative;
+  }
+  .chat-date-sep::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 0; right: 0;
+    height: 1px;
+    background: var(--border);
+    z-index: 0;
+  }
+  .chat-date-sep span {
+    background: var(--card);
+    padding: 0 0.8rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  .chat-input-area {
+    padding: 0.8rem 1rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-end;
+    flex-shrink: 0;
+  }
+  .chat-input {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.6rem 0.9rem;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    outline: none;
+    resize: none;
+    max-height: 100px;
+    transition: border-color 0.2s;
+  }
+  .chat-input:focus { border-color: var(--employee); }
+  .chat-send-btn {
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    background: var(--employee);
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+    transition: background 0.2s, transform 0.1s;
+    flex-shrink: 0;
+  }
+  .chat-send-btn:hover { background: #9d5df0; transform: scale(1.05); }
+  .chat-send-btn.employer { background: var(--accent); }
+  .chat-send-btn.employer:hover { background: #ff8055; }
+
+  .chat-empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    padding: 2rem;
+    text-align: center;
+  }
+  .chat-empty-icon { font-size: 2.5rem; margin-bottom: 0.8rem; }
+  .chat-empty h3 { font-family: 'Syne', sans-serif; font-weight: 700; margin-bottom: 0.4rem; color: var(--text); font-size: 0.95rem; }
+  .chat-empty p { font-size: 0.75rem; }
+
+  /* ── SETTINGS MODAL PANEL ── */
+  #settings-panel {
+    position: fixed;
+    top: 0; right: 0; bottom: 0;
+    width: 520px;
+    max-width: 100vw;
+    background: var(--card);
+    border-left: 1px solid var(--border);
+    z-index: 800;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.35s cubic-bezier(0.22,1,0.36,1);
+    box-shadow: -8px 0 32px rgba(0,0,0,0.4);
+    overflow-y: auto;
+  }
+  #settings-panel.open { transform: translateX(0); }
+  #settings-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 799;
+    display: none;
+    backdrop-filter: blur(2px);
+  }
+  #settings-backdrop.open { display: block; }
+  .settings-panel-header {
+    padding: 1.4rem 1.6rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    background: var(--card);
+    z-index: 10;
+  }
+  .settings-panel-title { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.1rem; }
+  .settings-panel-body { padding: 1.6rem; display: flex; flex-direction: column; gap: 1.4rem; }
+
+  /* ── ACTIVE FILTER CHIP ── */
+  .filter-chip {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    background: rgba(255,107,53,0.12);
+    border: 1px solid rgba(255,107,53,0.3);
+    color: var(--accent);
+    font-size: 0.7rem;
+    padding: 0.3rem 0.7rem;
+    border-radius: 20px;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 600px) {
+    .role-cards { grid-template-columns: 1fr; }
+    .topbar { padding: 0.8rem 1rem; }
+    .main-content { padding: 1rem; }
+    .topbar-logo { font-size: 1rem; }
+    .log-detail-hero { padding: 1.5rem 1.2rem 1.2rem; }
+    .log-detail-body { padding: 1.2rem; }
+    .log-detail-topic { font-size: 1.4rem; }
+    .detail-info-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-logo">Work<span>Log</span></div>
+  <div class="login-sub">System zarządzania rozmowami</div>
+
+  <!-- Role selection -->
+  <div id="role-select" class="role-cards">
+    <div class="role-card" onclick="showLogin('employer')">
+      <div class="role-icon">👔</div>
+      <div class="role-title">Pracodawca</div>
+      <div class="role-desc">Zarządzaj pracownikami, przeglądaj wszystkie raporty i statystyki.</div>
+    </div>
+    <div class="role-card employee" onclick="showLogin('employee')">
+      <div class="role-icon">💼</div>
+      <div class="role-title">Pracownik</div>
+      <div class="role-desc">Dodawaj wpisy o rozmowach z klientami.</div>
+    </div>
+  </div>
+
+  <!-- Employer login -->
+  <div id="employer-login" class="login-form" style="display:none;">
+    <div class="form-title">👔 Logowanie pracodawcy</div>
+    <div class="form-subtitle">Wprowadź dane dostępowe administratora</div>
+    <div class="field">
+      <label>Login</label>
+      <input type="text" id="emp-login" placeholder="admin" />
+    </div>
+    <div class="field">
+      <label>Hasło</label>
+      <input type="password" id="emp-pass" placeholder="••••••" />
+      <div class="error-msg" id="emp-err">Nieprawidłowe dane logowania</div>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="loginEmployer()">Zaloguj się →</button>
+    <a class="back-link" onclick="showForgotCredentials()" style="color:var(--accent);margin-top:0.6rem;">🔑 Zapomniałem loginu / hasła</a>
+    <a class="back-link" onclick="showRoleSelect()">← Wróć do wyboru roli</a>
+  </div>
+
+  <!-- Employee login -->
+  <div id="employee-login" class="login-form" style="display:none;">
+    <div class="form-title">💼 Logowanie pracownika</div>
+    <div class="form-subtitle">Wybierz swoje konto</div>
+    <div class="field">
+      <label>Wybierz pracownika</label>
+      <select id="emp-select">
+        <option value="">-- wybierz --</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Hasło</label>
+      <input type="password" id="emp-worker-pass" placeholder="••••••" />
+      <div class="error-msg" id="emp-worker-err">Nieprawidłowe hasło</div>
+    </div>
+    <button class="btn btn-secondary btn-full" onclick="loginEmployee()">Zaloguj się →</button>
+    <a class="back-link" onclick="showRoleSelect()">← Wróć do wyboru roli</a>
+  </div>
+</div>
+
+<!-- FORGOT CREDENTIALS MODAL -->
+<div id="forgot-modal" class="modal-overlay" style="display:none;">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-title">🔑 Resetuj dane logowania</div>
+    <p style="color:var(--muted);font-size:0.78rem;margin-bottom:1.4rem;line-height:1.6;">Ustaw nowy login i/lub hasło do konta pracodawcy. Pola które zostawisz puste nie zostaną zmienione.</p>
+
+    <div class="field">
+      <label>Nowy login <span style="color:var(--muted);font-weight:400;">(zostaw puste = bez zmian)</span></label>
+      <input type="text" id="forgot-new-login" placeholder="min. 3 znaki" />
+    </div>
+    <div class="field">
+      <label>Nowe hasło <span style="color:var(--muted);font-weight:400;">(zostaw puste = bez zmian)</span></label>
+      <div class="pass-input-wrap">
+        <input type="password" id="forgot-new-pass" placeholder="min. 4 znaki" />
+        <button class="pass-toggle" onclick="togglePass('forgot-new-pass', this)">👁</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Powtórz nowe hasło</label>
+      <div class="pass-input-wrap">
+        <input type="password" id="forgot-new-pass2" placeholder="••••••" />
+        <button class="pass-toggle" onclick="togglePass('forgot-new-pass2', this)">👁</button>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeForgotModal()">Anuluj</button>
+      <button class="btn btn-primary" onclick="confirmForgotCredentials()">💾 Zapisz zmiany</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP SCREEN -->
+<div id="app-screen">
+  <div class="topbar">
+    <div class="topbar-logo">Work<span>Log</span></div>
+    <div class="topbar-right">
+      <!-- Chat icon with unread badge -->
+      <div class="chat-topbar-btn" id="chat-topbar-btn" onclick="openChatPanel()" title="Wiadomości">
+        💬
+        <span class="chat-unread-badge" id="chat-unread-badge" style="display:none;"></span>
+      </div>
+
+      <!-- User badge with dropdown on hover -->
+      <div class="user-badge-wrap" id="user-badge-wrap">
+        <div class="user-badge" id="topbar-user-badge">
+          <div id="topbar-avatar-wrap"></div>
+          <span id="topbar-name"></span>
+          <span style="color:var(--muted);font-size:0.7rem;">▾</span>
+        </div>
+        <div class="user-dropdown" id="user-dropdown">
+          <div class="user-dropdown-header">
+            <div id="dropdown-avatar" style="width:40px;height:40px;border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;background:var(--surface);border:1px solid var(--border);"></div>
+            <div>
+              <div id="dropdown-name" style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.9rem;"></div>
+              <div id="dropdown-role" style="color:var(--muted);font-size:0.68rem;"></div>
+            </div>
+          </div>
+          <div class="user-dropdown-divider"></div>
+          <button class="user-dropdown-item" onclick="openSettingsFromDropdown()">⚙️ Ustawienia konta</button>
+          <button class="user-dropdown-item" onclick="openChatPanel()">💬 Wiadomości <span id="dropdown-unread" style="display:none;background:var(--accent);color:#fff;border-radius:10px;padding:0.1rem 0.45rem;font-size:0.62rem;margin-left:auto;"></span></button>
+          <div class="user-dropdown-divider"></div>
+          <button class="user-dropdown-item danger" onclick="logout()">🚪 Wyloguj</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EMPLOYER VIEW -->
+  <div id="employer-view" style="display:none;">
+    <div class="main-content">
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('overview')">📊 Przegląd</button>
+        <button class="tab" onclick="switchTab('employees')">👥 Pracownicy</button>
+        <button class="tab" onclick="switchTab('clients')">🏢 Klienci</button>
+        <button class="tab" onclick="switchTab('logs')">📋 Raporty</button>
+      </div>
+
+      <!-- OVERVIEW TAB -->
+      <div id="tab-overview">
+        <div class="section-header">
+          <div class="section-title">Przegląd <span>dzisiaj</span></div>
+        </div>
+        <div class="stats-row" id="overview-stats"></div>
+        <div class="section-title" style="margin-bottom:1rem; font-size:1rem;">Ostatnie wpisy</div>
+        <div id="overview-logs" class="log-list"></div>
+      </div>
+
+      <!-- EMPLOYEES TAB -->
+      <div id="tab-employees" style="display:none;">
+        <div class="section-header">
+          <div class="section-title">Pracownicy <span id="emp-count"></span></div>
+          <button class="btn btn-primary" onclick="showAddEmployee()">+ Dodaj pracownika</button>
+        </div>
+        <div id="employees-grid" class="cards-grid"></div>
+      </div>
+
+      <!-- CLIENTS TAB -->
+      <div id="tab-clients" style="display:none;">
+        <div class="section-header">
+          <div class="section-title">Klienci <span id="clients-count"></span></div>
+          <button class="btn btn-primary" onclick="showAddClient()">+ Dodaj klienta</button>
+        </div>
+        <div id="clients-grid" class="cards-grid"></div>
+      </div>
+
+      <!-- LOGS TAB -->
+      <div id="tab-logs" style="display:none;">
+        <div class="section-header">
+          <div class="section-title">Raporty rozmów <span id="logs-count"></span></div>
+        </div>
+        <div class="filter-bar">
+          <select id="filter-emp" onchange="renderAllLogs()">
+            <option value="">👥 Wszyscy pracownicy</option>
+          </select>
+          <select id="filter-client" onchange="renderAllLogs()">
+            <option value="">🏢 Wszyscy klienci</option>
+          </select>
+          <input type="text" id="filter-search" placeholder="🔍 Szukaj po temacie, notatce..." oninput="renderAllLogs()" style="min-width:220px;" />
+          <button class="btn btn-ghost btn-sm" onclick="clearFilters()">✕ Wyczyść</button>
+        </div>
+        <div id="active-filters" style="margin-bottom:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;"></div>
+        <div id="all-logs" class="log-list"></div>
+      </div>
+      <!-- SETTINGS TAB (EMPLOYER) -->
+      <div id="tab-settings" style="display:none;">
+        <div class="section-header">
+          <div class="section-title">Ustawienia konta</div>
+        </div>
+        <div class="settings-grid">
+
+          <!-- PHOTO CARD -->
+          <div class="settings-card">
+            <div class="settings-card-title">🖼 Zdjęcie profilowe</div>
+            <div class="settings-card-desc">Twoje zdjęcie widoczne jest w górnym pasku aplikacji.</div>
+            <div class="avatar-upload-wrap" style="margin-top:1.2rem;">
+              <div class="avatar-preview" id="admin-avatar-preview">👔</div>
+              <div class="avatar-upload-info">
+                <label class="avatar-upload-btn" for="admin-avatar-input">📷 Wybierz zdjęcie</label>
+                <input type="file" id="admin-avatar-input" class="avatar-file-input" accept="image/*" onchange="handleAvatarUpload('admin', this)" />
+                <p>JPG, PNG, GIF — maks. 2MB</p>
+                <button class="avatar-remove-btn" onclick="removeAvatar('admin')">🗑 Usuń zdjęcie</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- LOGIN CHANGE CARD -->
+          <div class="settings-card">
+            <div class="settings-card-title">👤 Zmień login administratora</div>
+            <div class="settings-card-desc">Zmień nazwę użytkownika do logowania pracodawcy.</div>
+            <div class="field" style="margin-top:1.2rem;">
+              <label>Aktualny login</label>
+              <input type="text" id="admin-current-login-display" readonly style="opacity:0.5;cursor:not-allowed;" />
+            </div>
+            <div class="field">
+              <label>Nowy login</label>
+              <input type="text" id="admin-new-login" placeholder="min. 3 znaki" />
+            </div>
+            <div class="field">
+              <label>Potwierdź hasłem</label>
+              <div class="pass-input-wrap">
+                <input type="password" id="admin-login-confirm-pass" placeholder="••••••" />
+                <button class="pass-toggle" onclick="togglePass('admin-login-confirm-pass', this)">👁</button>
+              </div>
+            </div>
+            <button class="btn btn-primary" onclick="changeAdminLogin()">💾 Zmień login</button>
+          </div>
+
+          <!-- PASSWORD CARD -->
+          <div class="settings-card">
+            <div class="settings-card-title">🔑 Zmień hasło administratora</div>
+            <div class="settings-card-desc">Zmień hasło do konta pracodawcy. Aktualne hasło jest wymagane.</div>
+            <div class="field" style="margin-top:1.2rem;">
+              <label>Aktualne hasło</label>
+              <div class="pass-input-wrap">
+                <input type="password" id="admin-old-pass" placeholder="••••••" />
+                <button class="pass-toggle" onclick="togglePass('admin-old-pass', this)">👁</button>
+              </div>
+            </div>
+            <div class="field">
+              <label>Nowe hasło</label>
+              <div class="pass-input-wrap">
+                <input type="password" id="admin-new-pass" placeholder="min. 4 znaki" />
+                <button class="pass-toggle" onclick="togglePass('admin-new-pass', this)">👁</button>
+              </div>
+            </div>
+            <div class="field">
+              <label>Powtórz nowe hasło</label>
+              <div class="pass-input-wrap">
+                <input type="password" id="admin-new-pass2" placeholder="••••••" />
+                <button class="pass-toggle" onclick="togglePass('admin-new-pass2', this)">👁</button>
+              </div>
+            </div>
+            <button class="btn btn-primary" onclick="changeAdminPassword()">💾 Zmień hasło</button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="employee-view" style="display:none;">
+    <div class="main-content">
+      <div class="tabs">
+        <button class="tab active" onclick="switchEmpTab('add')">➕ Nowy wpis</button>
+        <button class="tab" onclick="switchEmpTab('my-logs')">📋 Moje wpisy</button>
+      </div>
+
+      <!-- ADD LOG TAB -->
+      <div id="etab-add">
+        <div class="section-header">
+          <div class="section-title">Nowy wpis rozmowy</div>
+        </div>
+        <div class="form-card">
+          <div class="field">
+            <label>Klient / Firma *</label>
+            <select id="log-client-select" onchange="onClientSelectChange()">
+              <option value="">-- wybierz z listy lub wpisz ręcznie --</option>
+            </select>
+          </div>
+          <div class="field" id="log-client-manual-field" style="display:none;">
+            <label>Wpisz nazwę klienta ręcznie *</label>
+            <input type="text" id="log-client-manual" placeholder="np. Jan Kowalski / ABC Sp. z o.o." />
+          </div>
+          <div class="field">
+            <label>Temat rozmowy *</label>
+            <input type="text" id="log-topic" placeholder="np. Prezentacja oferty, reklamacja..." />
+          </div>
+          <div class="field">
+            <label>Szczegóły / Notatki</label>
+            <textarea id="log-notes" placeholder="Opisz o czym rozmawiałeś, jakie ustalenia poczyniono, następne kroki..."></textarea>
+          </div>
+          <div class="field">
+            <label>Wynik rozmowy</label>
+            <select id="log-result">
+              <option value="pozytywny">✅ Pozytywny</option>
+              <option value="neutralny">⚪ Neutralny</option>
+              <option value="negatywny">❌ Negatywny</option>
+              <option value="do-kontaktu">📞 Do ponownego kontaktu</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Tagi (oddziel przecinkami)</label>
+            <input type="text" id="log-tags" placeholder="np. umowa, priorytet, follow-up" />
+          </div>
+          <button class="btn btn-secondary btn-full" onclick="addLog()">💾 Zapisz wpis</button>
+        </div>
+      </div>
+
+      <!-- MY LOGS TAB -->
+      <div id="etab-my-logs" style="display:none;">
+        <div class="section-header">
+          <div class="section-title">Moje wpisy</div>
+        </div>
+        <div id="my-logs" class="log-list"></div>
+      </div>
+
+      <!-- SETTINGS TAB (EMPLOYEE) -->
+      <div id="etab-settings" style="display:none;">
+        <div class="section-header">
+          <div class="section-title">Ustawienia konta</div>
+        </div>
+        <div class="settings-grid">
+
+          <!-- PHOTO CARD -->
+          <div class="settings-card">
+            <div class="settings-card-title">🖼 Zdjęcie profilowe</div>
+            <div class="settings-card-desc">Twoje zdjęcie widoczne jest w topbarze i na liście pracowników.</div>
+            <div class="avatar-upload-wrap" style="margin-top:1.2rem;">
+              <div class="avatar-preview" id="emp-avatar-preview">💼</div>
+              <div class="avatar-upload-info">
+                <label class="avatar-upload-btn" for="emp-avatar-input">📷 Wybierz zdjęcie</label>
+                <input type="file" id="emp-avatar-input" class="avatar-file-input" accept="image/*" onchange="handleAvatarUpload('employee', this)" />
+                <p>JPG, PNG, GIF — maks. 2MB</p>
+                <button class="avatar-remove-btn" onclick="removeAvatar('employee')">🗑 Usuń zdjęcie</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- PASSWORD CARD -->
+          <div class="settings-card">
+            <div class="settings-card-title">🔑 Zmień swoje hasło</div>
+            <div class="settings-card-desc">Zmień hasło do swojego konta pracownika.</div>
+            <div class="field" style="margin-top:1.2rem;">
+              <label>Aktualne hasło</label>
+              <div class="pass-input-wrap">
+                <input type="password" id="emp-old-pass" placeholder="••••••" />
+                <button class="pass-toggle" onclick="togglePass('emp-old-pass', this)">👁</button>
+              </div>
+            </div>
+            <div class="field">
+              <label>Nowe hasło</label>
+              <div class="pass-input-wrap">
+                <input type="password" id="emp-new-pass" placeholder="min. 4 znaki" />
+                <button class="pass-toggle" onclick="togglePass('emp-new-pass', this)">👁</button>
+              </div>
+            </div>
+            <div class="field">
+              <label>Powtórz nowe hasło</label>
+              <div class="pass-input-wrap">
+                <input type="password" id="emp-new-pass2" placeholder="••••••" />
+                <button class="pass-toggle" onclick="togglePass('emp-new-pass2', this)">👁</button>
+              </div>
+            </div>
+            <button class="btn btn-secondary" onclick="changeEmployeePassword()">💾 Zmień hasło</button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CHAT BACKDROP -->
+<div id="chat-backdrop" onclick="closeChatPanel()"></div>
+
+<!-- CHAT PANEL -->
+<div id="chat-panel">
+  <div class="chat-panel-header">
+    <div class="chat-panel-title">💬 Wiadomości</div>
+    <button class="chat-close-btn" onclick="closeChatPanel()">✕</button>
+  </div>
+  <!-- Employer: conversation list -->
+  <div id="chat-conv-list-view" style="display:none; flex:1; overflow-y:auto;">
+    <div class="chat-conv-list" id="chat-conv-list"></div>
+  </div>
+  <!-- Chat window (shared) -->
+  <div id="chat-window-view" class="chat-window" style="display:none;">
+    <div class="chat-window-header">
+      <button class="chat-back-btn" id="chat-back-btn" onclick="backToConvList()" style="display:none;">←</button>
+      <div class="chat-conv-avatar" id="chat-window-avatar" style="width:36px;height:36px;font-size:0.8rem;"></div>
+      <div>
+        <div class="chat-window-name" id="chat-window-name"></div>
+        <div class="chat-window-sub" id="chat-window-sub"></div>
+      </div>
+    </div>
+    <div class="chat-messages" id="chat-messages"></div>
+    <div class="chat-input-area">
+      <textarea class="chat-input" id="chat-input" placeholder="Wpisz wiadomość..." rows="1"
+        onkeydown="chatInputKeydown(event)" oninput="autoResizeChatInput(this)"></textarea>
+      <button class="chat-send-btn" id="chat-send-btn" onclick="sendMessage()">➤</button>
+    </div>
+  </div>
+  <!-- Empty state for employee (no employer yet) -->
+  <div id="chat-empty-view" class="chat-empty" style="display:none;">
+    <div class="chat-empty-icon">💬</div>
+    <h3>Brak wiadomości</h3>
+    <p>Twój pracodawca jeszcze nie napisał.<br>Możesz napisać pierwszy!</p>
+  </div>
+</div>
+
+<!-- SETTINGS BACKDROP -->
+<div id="settings-backdrop" onclick="closeSettingsPanel()"></div>
+
+<!-- SETTINGS PANEL (SLIDE-IN) -->
+<div id="settings-panel">
+  <div class="settings-panel-header">
+    <div class="settings-panel-title">⚙️ Ustawienia</div>
+    <button class="chat-close-btn" onclick="closeSettingsPanel()">✕</button>
+  </div>
+  <div class="settings-panel-body" id="settings-panel-body">
+    <!-- filled dynamically -->
+  </div>
+</div>
+
+<!-- LOG DETAIL FULLSCREEN MODAL -->
+<div id="log-detail-overlay" style="display:none;" onclick="closeLogDetail(event)">
+  <div class="log-detail-panel" id="log-detail-panel">
+    <button class="log-detail-close" onclick="closeLogDetail()">✕</button>
+    <div class="log-detail-hero">
+      <div class="log-detail-badge-row" id="detail-badges"></div>
+      <div class="log-detail-client" id="detail-client"></div>
+      <div class="log-detail-topic" id="detail-topic"></div>
+      <div class="log-detail-date" id="detail-date"></div>
+    </div>
+    <div class="log-detail-body">
+      <div class="detail-info-grid" style="margin-bottom:2rem;">
+        <div class="detail-info-item">
+          <div class="detail-info-label">Pracownik</div>
+          <div class="detail-info-value" id="detail-emp-name"></div>
+        </div>
+        <div class="detail-info-item">
+          <div class="detail-info-label">Wynik rozmowy</div>
+          <div class="detail-info-value" id="detail-result"></div>
+        </div>
+      </div>
+      <div class="detail-section" id="detail-notes-section">
+        <div class="detail-section-label">📝 Notatki i szczegóły</div>
+        <div class="detail-section-content" id="detail-notes"></div>
+      </div>
+      <div class="detail-section" id="detail-tags-section">
+        <div class="detail-section-label">🏷 Tagi</div>
+        <div class="detail-tags" id="detail-tags"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RESET EMPLOYEE PASSWORD MODAL -->
+<div id="reset-pass-modal" class="modal-overlay" style="display:none;">
+  <div class="modal">
+    <div class="modal-title">🔑 Reset hasła pracownika</div>
+    <input type="hidden" id="reset-emp-id" />
+    <div id="reset-emp-label" style="color:var(--muted);font-size:0.8rem;margin-bottom:1.2rem;"></div>
+    <div class="field">
+      <label>Nowe hasło</label>
+      <div class="pass-input-wrap">
+        <input type="password" id="reset-emp-new-pass" placeholder="min. 4 znaki" />
+        <button class="pass-toggle" onclick="togglePass('reset-emp-new-pass', this)">👁</button>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeResetPassModal()">Anuluj</button>
+      <button class="btn btn-primary" onclick="confirmResetEmpPass()">💾 Zapisz nowe hasło</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD CLIENT MODAL -->
+<div id="add-client-modal" class="modal-overlay" style="display:none;">
+  <div class="modal">
+    <div class="modal-title">🏢 Dodaj klienta</div>
+    <div class="field">
+      <label>Nazwa klienta / Firma *</label>
+      <input type="text" id="new-client-name" placeholder="np. ABC Sp. z o.o." />
+    </div>
+    <div class="field">
+      <label>Branża / Typ</label>
+      <input type="text" id="new-client-industry" placeholder="np. IT, Handel, Produkcja..." />
+    </div>
+    <div class="field">
+      <label>Notatki o kliencie</label>
+      <textarea id="new-client-notes" placeholder="Ważne informacje, kontakty, uwagi..." style="min-height:70px;"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeClientModal()">Anuluj</button>
+      <button class="btn btn-primary" onclick="addClient()">Dodaj klienta</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD EMPLOYEE MODAL -->
+<div id="add-emp-modal" class="modal-overlay" style="display:none;">
+  <div class="modal">
+    <div class="modal-title">➕ Dodaj pracownika</div>
+    <div class="field">
+      <label>Imię i nazwisko *</label>
+      <input type="text" id="new-emp-name" placeholder="np. Anna Nowak" />
+    </div>
+    <div class="field">
+      <label>Stanowisko</label>
+      <input type="text" id="new-emp-pos" placeholder="np. Handlowiec" />
+    </div>
+    <div class="field">
+      <label>Hasło pracownika *</label>
+      <input type="password" id="new-emp-pass" placeholder="min. 4 znaki" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Anuluj</button>
+      <button class="btn btn-secondary" onclick="addEmployee()">Dodaj pracownika</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+//  STATE
+// ─────────────────────────────────────────────
+let currentRole = null;
+let currentUser = null;
+
+// Load state from localStorage
+function loadState() {
+  const emp = localStorage.getItem('wl_employees');
+  const logs = localStorage.getItem('wl_logs');
+  const clients = localStorage.getItem('wl_clients');
+  return {
+    employees: emp ? JSON.parse(emp) : [],
+    logs: logs ? JSON.parse(logs) : [],
+    clients: clients ? JSON.parse(clients) : []
+  };
+}
+
+function saveEmployees(employees) {
+  localStorage.setItem('wl_employees', JSON.stringify(employees));
+}
+
+function saveLogs(logs) {
+  localStorage.setItem('wl_logs', JSON.stringify(logs));
+}
+
+function saveClients(clients) {
+  localStorage.setItem('wl_clients', JSON.stringify(clients));
+}
+
+// Employer credentials
+const EMPLOYER_LOGIN = 'admin';
+const EMPLOYER_PASS = 'admin123';
+
+// ─────────────────────────────────────────────
+//  LOGIN
+// ─────────────────────────────────────────────
+function showLogin(role) {
+  document.getElementById('role-select').style.display = 'none';
+  if (role === 'employer') {
+    document.getElementById('employer-login').style.display = 'block';
+  } else {
+    populateEmployeeSelect();
+    document.getElementById('employee-login').style.display = 'block';
+  }
+}
+
+function showRoleSelect() {
+  document.getElementById('role-select').style.display = 'grid';
+  document.getElementById('employer-login').style.display = 'none';
+  document.getElementById('employee-login').style.display = 'none';
+  document.getElementById('emp-err').style.display = 'none';
+  document.getElementById('emp-worker-err').style.display = 'none';
+}
+
+function populateEmployeeSelect() {
+  const { employees } = loadState();
+  const sel = document.getElementById('emp-select');
+  sel.innerHTML = '<option value="">-- wybierz --</option>';
+  employees.forEach(e => {
+    sel.innerHTML += `<option value="${e.id}">${e.name} — ${e.position}</option>`;
+  });
+}
+
+function loginEmployer() {
+  const login = document.getElementById('emp-login').value.trim();
+  const pass = document.getElementById('emp-pass').value;
+  const err = document.getElementById('emp-err');
+  const storedPass = localStorage.getItem('wl_admin_pass') || 'admin123';
+  const storedLogin = localStorage.getItem('wl_admin_login') || EMPLOYER_LOGIN;
+  if (login === storedLogin && pass === storedPass) {
+    err.style.display = 'none';
+    currentRole = 'employer';
+    currentUser = { name: 'Administrator', role: 'employer' };
+    enterApp();
+  } else {
+    err.style.display = 'block';
+  }
+}
+
+function loginEmployee() {
+  const id = document.getElementById('emp-select').value;
+  const pass = document.getElementById('emp-worker-pass').value;
+  const err = document.getElementById('emp-worker-err');
+  const { employees } = loadState();
+  const emp = employees.find(e => e.id === id);
+  if (emp && emp.password === pass) {
+    err.style.display = 'none';
+    currentRole = 'employee';
+    currentUser = emp;
+    enterApp();
+  } else {
+    err.style.display = 'block';
+  }
+}
+
+function enterApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  const app = document.getElementById('app-screen');
+  app.style.display = 'flex';
+
+  document.getElementById('topbar-name').textContent = currentUser.name;
+  updateTopbarAvatar();
+  updateDropdownInfo();
+  updateUnreadBadge();
+
+  if (currentRole === 'employer') {
+    document.getElementById('employer-view').style.display = 'block';
+    document.getElementById('employee-view').style.display = 'none';
+    renderOverview();
+    renderEmployees();
+    renderClients();
+    renderAllLogs();
+    populateFilterSelect();
+    populateClientFilterSelect();
+    // populate current login field
+    setTimeout(() => {
+      const loginEl = document.getElementById('admin-current-login-display');
+      if (loginEl) loginEl.value = localStorage.getItem('wl_admin_login') || EMPLOYER_LOGIN;
+      loadAvatarPreview('admin');
+    }, 0);
+  } else {
+    document.getElementById('employee-view').style.display = 'block';
+    document.getElementById('employer-view').style.display = 'none';
+    populateClientSelectForEmployee();
+    renderMyLogs();
+    setTimeout(() => loadAvatarPreview('employee'), 0);
+  }
+}
+
+function logout() {
+  currentRole = null;
+  currentUser = null;
+  document.getElementById('app-screen').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  showRoleSelect();
+  document.getElementById('emp-login').value = '';
+  document.getElementById('emp-pass').value = '';
+  document.getElementById('emp-worker-pass').value = '';
+}
+
+// ─────────────────────────────────────────────
+//  TABS
+// ─────────────────────────────────────────────
+function switchTab(tab) {
+  ['overview','employees','clients','logs'].forEach(t => {
+    document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none';
+  });
+  document.querySelectorAll('#employer-view .tab').forEach((el, i) => {
+    el.classList.toggle('active', ['overview','employees','clients','logs'][i] === tab);
+  });
+  if (tab === 'overview') renderOverview();
+  if (tab === 'employees') renderEmployees();
+  if (tab === 'clients') renderClients();
+  if (tab === 'logs') { renderAllLogs(); populateFilterSelect(); populateClientFilterSelect(); }
+}
+
+function switchEmpTab(tab) {
+  ['add','my-logs'].forEach(t => {
+    document.getElementById('etab-' + t).style.display = t === tab ? 'block' : 'none';
+  });
+  document.querySelectorAll('#employee-view .tab').forEach((el, i) => {
+    el.classList.toggle('active', ['add','my-logs'][i] === tab);
+  });
+  if (tab === 'my-logs') renderMyLogs();
+}
+
+// ─────────────────────────────────────────────
+//  EMPLOYEES
+// ─────────────────────────────────────────────
+function showAddEmployee() {
+  document.getElementById('add-emp-modal').style.display = 'flex';
+  document.getElementById('new-emp-name').value = '';
+  document.getElementById('new-emp-pos').value = '';
+  document.getElementById('new-emp-pass').value = '';
+}
+
+function closeModal() {
+  document.getElementById('add-emp-modal').style.display = 'none';
+}
+
+function addEmployee() {
+  const name = document.getElementById('new-emp-name').value.trim();
+  const pos = document.getElementById('new-emp-pos').value.trim() || 'Pracownik';
+  const pass = document.getElementById('new-emp-pass').value;
+  if (!name || pass.length < 4) {
+    toast('Uzupełnij wszystkie pola (hasło min. 4 znaki)', 'error');
+    return;
+  }
+  const { employees, logs } = loadState();
+  const emp = {
+    id: 'emp_' + Date.now(),
+    name,
+    position: pos,
+    password: pass,
+    createdAt: new Date().toISOString()
+  };
+  employees.push(emp);
+  saveEmployees(employees);
+  closeModal();
+  renderEmployees();
+  populateFilterSelect();
+  toast('Pracownik dodany!');
+}
+
+function deleteEmployee(id) {
+  if (!confirm('Usunąć pracownika? Wpisy zostaną zachowane.')) return;
+  const { employees } = loadState();
+  saveEmployees(employees.filter(e => e.id !== id));
+  renderEmployees();
+  populateFilterSelect();
+  toast('Pracownik usunięty');
+}
+
+function renderEmployees() {
+  const { employees, logs } = loadState();
+  const grid = document.getElementById('employees-grid');
+  document.getElementById('emp-count').textContent = `(${employees.length})`;
+  if (!employees.length) {
+    grid.innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="empty-icon">👥</div><h3>Brak pracowników</h3><p>Dodaj pierwszego pracownika klikając przycisk powyżej.</p></div>`;
+    return;
+  }
+  grid.innerHTML = employees.map(emp => {
+    const empLogs = logs.filter(l => l.employeeId === emp.id);
+    const initials = emp.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2);
+    const maskedPass = '•'.repeat(emp.password.length);
+    const avatarKey = 'wl_avatar_' + emp.id;
+    const avatarData = localStorage.getItem(avatarKey);
+    const avatarHTML = avatarData
+      ? `<img src="${avatarData}" alt="${emp.name}" />`
+      : initials;
+    return `
+      <div class="employee-card">
+        <div class="emp-header">
+          <div class="emp-avatar">${avatarHTML}</div>
+          <div class="emp-info">
+            <div class="emp-name">${emp.name}</div>
+            <div class="emp-pos">${emp.position}</div>
+          </div>
+        </div>
+        <div class="emp-pass-row">
+          <span class="emp-pass-label">🔑 Hasło</span>
+          <span class="emp-pass-value" id="pass-val-${emp.id}">${maskedPass}</span>
+          <button class="emp-pass-toggle" onclick="toggleEmpPass('${emp.id}', '${emp.password.replace(/'/g,"\\'")}', this)" title="Pokaż/ukryj hasło">👁</button>
+          <button class="emp-pass-toggle" onclick="showResetEmpPass('${emp.id}')" title="Zmień hasło pracownika" style="margin-left:0.3rem;">✏️</button>
+        </div>
+        <div class="emp-stats">
+          <div class="stat">
+            <div class="stat-num">${empLogs.length}</div>
+            <div class="stat-label">wpisów</div>
+          </div>
+          <div class="stat">
+            <div class="stat-num">${empLogs.filter(l => l.result === 'pozytywny').length}</div>
+            <div class="stat-label">pozytywnych</div>
+          </div>
+        </div>
+        <div class="emp-actions">
+          <button class="btn btn-danger btn-sm" onclick="deleteEmployee('${emp.id}')">🗑 Usuń</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ─────────────────────────────────────────────
+//  CLIENTS
+// ─────────────────────────────────────────────
+function showAddClient() {
+  document.getElementById('add-client-modal').style.display = 'flex';
+  document.getElementById('new-client-name').value = '';
+  document.getElementById('new-client-industry').value = '';
+  document.getElementById('new-client-notes').value = '';
+}
+
+function closeClientModal() {
+  document.getElementById('add-client-modal').style.display = 'none';
+}
+
+function addClient() {
+  const name = document.getElementById('new-client-name').value.trim();
+  const industry = document.getElementById('new-client-industry').value.trim();
+  const notes = document.getElementById('new-client-notes').value.trim();
+  if (!name) { toast('Nazwa klienta jest wymagana', 'error'); return; }
+  const { clients } = loadState();
+  if (clients.find(c => c.name.toLowerCase() === name.toLowerCase())) {
+    toast('Klient o tej nazwie już istnieje', 'error'); return;
+  }
+  clients.push({ id: 'cli_' + Date.now(), name, industry, notes, createdAt: new Date().toISOString() });
+  saveClients(clients);
+  closeClientModal();
+  renderClients();
+  populateClientFilterSelect();
+  toast('Klient dodany!');
+}
+
+function deleteClient(id) {
+  if (!confirm('Usunąć klienta? Wpisy powiązane z klientem zostaną zachowane.')) return;
+  const { clients } = loadState();
+  saveClients(clients.filter(c => c.id !== id));
+  renderClients();
+  populateClientFilterSelect();
+  toast('Klient usunięty');
+}
+
+function renderClients() {
+  const { clients, logs } = loadState();
+  const grid = document.getElementById('clients-grid');
+  const countEl = document.getElementById('clients-count');
+  if (countEl) countEl.textContent = `(${clients.length})`;
+  if (!clients.length) {
+    grid.innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="empty-icon">🏢</div><h3>Brak klientów</h3><p>Dodaj pierwszego klienta klikając przycisk powyżej.</p></div>`;
+    return;
+  }
+  grid.innerHTML = clients.map(c => {
+    const clientLogs = logs.filter(l => l.client === c.name);
+    const positive = clientLogs.filter(l => l.result === 'pozytywny').length;
+    return `
+      <div class="client-card">
+        <div class="client-card-header">
+          <div class="client-avatar">🏢</div>
+          <div>
+            <div class="client-name">${c.name}</div>
+            <div class="client-industry">${c.industry || 'Brak branży'}</div>
+          </div>
+        </div>
+        ${c.notes ? `<div class="client-notes-preview">${c.notes.length > 80 ? c.notes.slice(0,80)+'...' : c.notes}</div>` : ''}
+        <div class="client-stats">
+          <div class="client-stat">
+            <div class="client-stat-num">${clientLogs.length}</div>
+            <div class="client-stat-label">rozmów</div>
+          </div>
+          <div class="client-stat">
+            <div class="client-stat-num">${positive}</div>
+            <div class="client-stat-label">pozytywnych</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:0.5rem;">
+          <button class="btn btn-ghost btn-sm" onclick="filterByClient('${c.name.replace(/'/g,"\\'")}')">📋 Raporty</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteClient('${c.id}')">🗑 Usuń</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function filterByClient(clientName) {
+  switchTab('logs');
+  setTimeout(() => {
+    const sel = document.getElementById('filter-client');
+    if (sel) {
+      // find by text
+      for (let i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value === clientName) { sel.selectedIndex = i; break; }
+      }
+    }
+    renderAllLogs();
+  }, 50);
+}
+
+function populateClientFilterSelect() {
+  const { clients, logs } = loadState();
+  const sel = document.getElementById('filter-client');
+  if (!sel) return;
+  const currentVal = sel.value;
+  // Build list: registered clients + unique clients from logs not in list
+  const registeredNames = new Set(clients.map(c => c.name));
+  const logClients = [...new Set(logs.map(l => l.client))].filter(n => !registeredNames.has(n));
+  sel.innerHTML = '<option value="">🏢 Wszyscy klienci</option>';
+  if (clients.length) {
+    sel.innerHTML += `<optgroup label="── Zarejestrowane firmy ──">` +
+      clients.map(c => `<option value="${c.name}">${c.name}</option>`).join('') +
+      `</optgroup>`;
+  }
+  if (logClients.length) {
+    sel.innerHTML += `<optgroup label="── Inni klienci (z wpisów) ──">` +
+      logClients.map(n => `<option value="${n}">${n}</option>`).join('') +
+      `</optgroup>`;
+  }
+  // Restore selection
+  for (let i = 0; i < sel.options.length; i++) {
+    if (sel.options[i].value === currentVal) { sel.selectedIndex = i; break; }
+  }
+}
+
+function populateClientSelectForEmployee() {
+  const { clients } = loadState();
+  const sel = document.getElementById('log-client-select');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">-- wybierz z listy lub wpisz ręcznie --</option>';
+  clients.forEach(c => {
+    sel.innerHTML += `<option value="${c.name}">${c.name}${c.industry ? ' — '+c.industry : ''}</option>`;
+  });
+  sel.innerHTML += `<option value="__manual__">✏️ Wpisz ręcznie...</option>`;
+}
+
+function onClientSelectChange() {
+  const val = document.getElementById('log-client-select').value;
+  const manualField = document.getElementById('log-client-manual-field');
+  if (val === '__manual__') {
+    manualField.style.display = 'block';
+    document.getElementById('log-client-manual').focus();
+  } else {
+    manualField.style.display = 'none';
+  }
+}
+
+// ─────────────────────────────────────────────
+function addLog() {
+  const selVal = document.getElementById('log-client-select').value;
+  let client = '';
+  if (selVal === '__manual__') {
+    client = document.getElementById('log-client-manual').value.trim();
+  } else {
+    client = selVal;
+  }
+  const topic = document.getElementById('log-topic').value.trim();
+  const notes = document.getElementById('log-notes').value.trim();
+  const result = document.getElementById('log-result').value;
+  const tagsRaw = document.getElementById('log-tags').value.trim();
+
+  if (!client || !topic) { toast('Klient i temat są wymagane', 'error'); return; }
+
+  const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
+  const { logs } = loadState();
+  logs.unshift({
+    id: 'log_' + Date.now(),
+    employeeId: currentUser.id,
+    employeeName: currentUser.name,
+    client,
+    topic,
+    notes,
+    result,
+    tags,
+    createdAt: new Date().toISOString()
+  });
+  saveLogs(logs);
+  // Reset
+  document.getElementById('log-client-select').value = '';
+  document.getElementById('log-client-manual').value = '';
+  document.getElementById('log-client-manual-field').style.display = 'none';
+  document.getElementById('log-topic').value = '';
+  document.getElementById('log-notes').value = '';
+  document.getElementById('log-tags').value = '';
+  document.getElementById('log-result').value = 'pozytywny';
+  toast('Wpis zapisany!');
+  renderMyLogs();
+}
+
+function renderMyLogs() {
+  const { logs } = loadState();
+  const myLogs = logs.filter(l => l.employeeId === currentUser.id);
+  const container = document.getElementById('my-logs');
+  if (!myLogs.length) {
+    container.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><h3>Brak wpisów</h3><p>Dodaj swój pierwszy wpis rozmowy.</p></div>`;
+    return;
+  }
+  container.innerHTML = myLogs.map(l => logHTML(l)).join('');
+}
+
+// ─────────────────────────────────────────────
+//  LOGS — EMPLOYER
+// ─────────────────────────────────────────────
+function populateFilterSelect() {
+  const { employees } = loadState();
+  const sel = document.getElementById('filter-emp');
+  if (!sel) return;
+  const currentVal = sel.value;
+  sel.innerHTML = '<option value="">👥 Wszyscy pracownicy</option>';
+  employees.forEach(e => {
+    sel.innerHTML += `<option value="${e.id}">${e.name}</option>`;
+  });
+  for (let i = 0; i < sel.options.length; i++) {
+    if (sel.options[i].value === currentVal) { sel.selectedIndex = i; break; }
+  }
+}
+
+function clearFilters() {
+  document.getElementById('filter-search').value = '';
+  document.getElementById('filter-emp').value = '';
+  document.getElementById('filter-client').value = '';
+  renderAllLogs();
+}
+
+function renderAllLogs() {
+  const { logs, employees } = loadState();
+  const search = (document.getElementById('filter-search')?.value || '').toLowerCase().trim();
+  const empFilter = document.getElementById('filter-emp')?.value || '';
+  const clientFilter = document.getElementById('filter-client')?.value || '';
+
+  let filtered = [...logs]; // already newest first (unshift on add)
+  if (empFilter) filtered = filtered.filter(l => l.employeeId === empFilter);
+  if (clientFilter) filtered = filtered.filter(l => l.client === clientFilter);
+  if (search) filtered = filtered.filter(l =>
+    l.topic.toLowerCase().includes(search) ||
+    (l.notes || '').toLowerCase().includes(search) ||
+    l.client.toLowerCase().includes(search)
+  );
+
+  // Update count
+  const countEl = document.getElementById('logs-count');
+  if (countEl) countEl.textContent = `(${filtered.length})`;
+
+  // Active filter chips
+  const chipsEl = document.getElementById('active-filters');
+  if (chipsEl) {
+    const chips = [];
+    if (empFilter) {
+      const emp = employees.find(e => e.id === empFilter);
+      if (emp) chips.push(`<span class="filter-chip">👤 ${emp.name}</span>`);
+    }
+    if (clientFilter) chips.push(`<span class="filter-chip">🏢 ${clientFilter}</span>`);
+    if (search) chips.push(`<span class="filter-chip">🔍 "${search}"</span>`);
+    chipsEl.innerHTML = chips.join('');
+  }
+
+  const container = document.getElementById('all-logs');
+  if (!filtered.length) {
+    container.innerHTML = `<div class="empty"><div class="empty-icon">🔍</div><h3>Brak wyników</h3><p>Nie znaleziono wpisów pasujących do wybranych filtrów.</p></div>`;
+    return;
+  }
+  container.innerHTML = filtered.map(l => logHTML(l)).join('');
+}
+
+function renderOverview() {
+  const { employees, logs } = loadState();
+  const today = new Date().toDateString();
+  const todayLogs = logs.filter(l => new Date(l.createdAt).toDateString() === today);
+  const positive = logs.filter(l => l.result === 'pozytywny').length;
+
+  document.getElementById('overview-stats').innerHTML = `
+    <div class="stat-card"><div class="big-num">${logs.length}</div><p>Wszystkich wpisów</p></div>
+    <div class="stat-card"><div class="big-num emp">${employees.length}</div><p>Pracowników</p></div>
+    <div class="stat-card"><div class="big-num">${todayLogs.length}</div><p>Wpisów dzisiaj</p></div>
+    <div class="stat-card"><div class="big-num green">${positive}</div><p>Pozytywnych rozmów</p></div>
+  `;
+
+  const recentLogs = logs.slice(0, 5);
+  const container = document.getElementById('overview-logs');
+  if (!recentLogs.length) {
+    container.innerHTML = `<div class="empty"><div class="empty-icon">📭</div><h3>Brak wpisów</h3><p>Pracownicy jeszcze nie dodali żadnych rozmów.</p></div>`;
+    return;
+  }
+  container.innerHTML = recentLogs.map(l => logHTML(l)).join('');
+}
+
+// ─────────────────────────────────────────────
+//  LOG DETAIL MODAL
+// ─────────────────────────────────────────────
+function openLogDetail(logId) {
+  if (currentRole !== 'employer') return;
+  const { logs } = loadState();
+  const l = logs.find(x => x.id === logId);
+  if (!l) return;
+
+  const date = new Date(l.createdAt);
+  const dateStr = date.toLocaleDateString('pl-PL', { weekday:'long', day:'2-digit', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' });
+
+  const resultClass = 'result-' + l.result;
+  const resultLabel = resultLabels[l.result] || l.result;
+
+  document.getElementById('detail-badges').innerHTML = `
+    <span class="detail-badge emp-badge">👤 ${l.employeeName}</span>
+    <span class="detail-badge ${resultClass}">${resultLabel}</span>
+  `;
+  document.getElementById('detail-client').textContent = '🏢 ' + l.client;
+  document.getElementById('detail-topic').textContent = l.topic;
+  document.getElementById('detail-date').textContent = '🕐 ' + dateStr;
+  document.getElementById('detail-emp-name').textContent = l.employeeName;
+  document.getElementById('detail-result').textContent = resultLabel;
+
+  const notesSection = document.getElementById('detail-notes-section');
+  if (l.notes) {
+    notesSection.style.display = 'block';
+    document.getElementById('detail-notes').textContent = l.notes;
+  } else {
+    notesSection.style.display = 'none';
+  }
+
+  const tagsSection = document.getElementById('detail-tags-section');
+  if (l.tags && l.tags.length) {
+    tagsSection.style.display = 'block';
+    document.getElementById('detail-tags').innerHTML = l.tags.map(t => `<span class="detail-tag">${t}</span>`).join('');
+  } else {
+    tagsSection.style.display = 'none';
+  }
+
+  document.getElementById('log-detail-overlay').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeLogDetail(e) {
+  if (e && e.target !== document.getElementById('log-detail-overlay')) return;
+  document.getElementById('log-detail-overlay').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+// ─────────────────────────────────────────────
+//  LOG HTML
+// ─────────────────────────────────────────────
+const resultLabels = {
+  pozytywny: '✅ Pozytywny',
+  neutralny: '⚪ Neutralny',
+  negatywny: '❌ Negatywny',
+  'do-kontaktu': '📞 Do kontaktu'
+};
+
+function logHTML(l) {
+  const date = new Date(l.createdAt);
+  const dateStr = date.toLocaleDateString('pl-PL', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  const tags = l.tags?.length ? l.tags.map(t => `<span class="tag">${t}</span>`).join('') : '';
+  const clickable = currentRole === 'employer' ? `onclick="openLogDetail('${l.id}')"` : '';
+  const hint = currentRole === 'employer' ? `<div class="log-entry-hint">👁 Kliknij aby zobaczyć szczegóły</div>` : '';
+  return `
+    <div class="log-entry" ${clickable}>
+      <div class="log-header">
+        <div class="log-meta">
+          <span class="log-emp">👤 ${l.employeeName}</span>
+          <span class="log-client">${l.client}</span>
+          <span class="tag">${resultLabels[l.result] || l.result}</span>
+        </div>
+        <span class="log-date">${dateStr}</span>
+      </div>
+      <div class="log-topic">${l.topic}</div>
+      ${l.notes ? `<div class="log-notes">${l.notes.length > 120 ? l.notes.slice(0,120) + '...' : l.notes}</div>` : ''}
+      ${tags ? `<div class="log-tags">${tags}</div>` : ''}
+      ${hint}
+    </div>
+  `;
+}
+
+// ─────────────────────────────────────────────
+//  DROPDOWN INFO
+// ─────────────────────────────────────────────
+function updateDropdownInfo() {
+  const nameEl = document.getElementById('dropdown-name');
+  const roleEl = document.getElementById('dropdown-role');
+  const avatarEl = document.getElementById('dropdown-avatar');
+  if (nameEl) nameEl.textContent = currentUser.name;
+  if (roleEl) roleEl.textContent = currentRole === 'employer' ? '👔 Pracodawca' : ('💼 ' + (currentUser.position || 'Pracownik'));
+  if (avatarEl) {
+    const key = currentRole === 'employer' ? 'wl_avatar_admin' : 'wl_avatar_' + (currentUser?.id || '');
+    const data = localStorage.getItem(key);
+    if (data) {
+      avatarEl.innerHTML = `<img src="${data}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;" />`;
+    } else {
+      const initials = currentRole === 'employer' ? 'A' : currentUser.name.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2);
+      const bg = currentRole === 'employer' ? 'var(--accent)' : 'var(--employee)';
+      avatarEl.style.background = bg;
+      avatarEl.style.color = '#fff';
+      avatarEl.style.fontFamily = "'Syne',sans-serif";
+      avatarEl.style.fontWeight = '700';
+      avatarEl.textContent = initials;
+    }
+  }
+}
+
+function openSettingsFromDropdown() {
+  // hide dropdown
+  openSettingsPanel();
+}
+
+// ─────────────────────────────────────────────
+//  SETTINGS PANEL
+// ─────────────────────────────────────────────
+function openSettingsPanel() {
+  // Build settings content dynamically
+  const body = document.getElementById('settings-panel-body');
+  if (currentRole === 'employer') {
+    body.innerHTML = `
+      <!-- PHOTO -->
+      <div class="settings-card">
+        <div class="settings-card-title">🖼 Zdjęcie profilowe</div>
+        <div class="settings-card-desc">Widoczne w topbarze i na kartach pracowników.</div>
+        <div class="avatar-upload-wrap" style="margin-top:1.2rem;">
+          <div class="avatar-preview" id="admin-avatar-preview">👔</div>
+          <div class="avatar-upload-info">
+            <label class="avatar-upload-btn" for="admin-avatar-input">📷 Wybierz zdjęcie</label>
+            <input type="file" id="admin-avatar-input" class="avatar-file-input" accept="image/*" onchange="handleAvatarUpload('admin', this)" />
+            <p>JPG, PNG, GIF — maks. 2MB</p>
+            <button class="avatar-remove-btn" onclick="removeAvatar('admin')">🗑 Usuń zdjęcie</button>
+          </div>
+        </div>
+      </div>
+      <!-- LOGIN -->
+      <div class="settings-card">
+        <div class="settings-card-title">👤 Zmień login administratora</div>
+        <div class="settings-card-desc">Zmień nazwę użytkownika do logowania.</div>
+        <div class="field" style="margin-top:1.2rem;">
+          <label>Aktualny login</label>
+          <input type="text" id="admin-current-login-display" readonly style="opacity:0.5;cursor:not-allowed;" value="${localStorage.getItem('wl_admin_login') || EMPLOYER_LOGIN}" />
+        </div>
+        <div class="field">
+          <label>Nowy login</label>
+          <input type="text" id="admin-new-login" placeholder="min. 3 znaki" />
+        </div>
+        <button class="btn btn-primary" onclick="changeAdminLogin()">💾 Zmień login</button>
+      </div>
+      <!-- PASSWORD -->
+      <div class="settings-card">
+        <div class="settings-card-title">🔑 Zmień hasło</div>
+        <div class="settings-card-desc">Ustaw nowe hasło do konta pracodawcy.</div>
+        <div class="field" style="margin-top:1.2rem;">
+          <label>Nowe hasło</label>
+          <div class="pass-input-wrap">
+            <input type="password" id="admin-new-pass" placeholder="min. 4 znaki" />
+            <button class="pass-toggle" onclick="togglePass('admin-new-pass', this)">👁</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Powtórz nowe hasło</label>
+          <div class="pass-input-wrap">
+            <input type="password" id="admin-new-pass2" placeholder="••••••" />
+            <button class="pass-toggle" onclick="togglePass('admin-new-pass2', this)">👁</button>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="changeAdminPassword()">💾 Zmień hasło</button>
+      </div>
+    `;
+  } else {
+    body.innerHTML = `
+      <!-- PHOTO -->
+      <div class="settings-card">
+        <div class="settings-card-title">🖼 Zdjęcie profilowe</div>
+        <div class="settings-card-desc">Widoczne w topbarze i na liście pracowników.</div>
+        <div class="avatar-upload-wrap" style="margin-top:1.2rem;">
+          <div class="avatar-preview" id="emp-avatar-preview">💼</div>
+          <div class="avatar-upload-info">
+            <label class="avatar-upload-btn" for="emp-avatar-input">📷 Wybierz zdjęcie</label>
+            <input type="file" id="emp-avatar-input" class="avatar-file-input" accept="image/*" onchange="handleAvatarUpload('employee', this)" />
+            <p>JPG, PNG, GIF — maks. 2MB</p>
+            <button class="avatar-remove-btn" onclick="removeAvatar('employee')">🗑 Usuń zdjęcie</button>
+          </div>
+        </div>
+      </div>
+      <!-- PASSWORD -->
+      <div class="settings-card">
+        <div class="settings-card-title">🔑 Zmień swoje hasło</div>
+        <div class="settings-card-desc">Aktualne hasło jest wymagane.</div>
+        <div class="field" style="margin-top:1.2rem;">
+          <label>Aktualne hasło</label>
+          <div class="pass-input-wrap">
+            <input type="password" id="emp-old-pass" placeholder="••••••" />
+            <button class="pass-toggle" onclick="togglePass('emp-old-pass', this)">👁</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Nowe hasło</label>
+          <div class="pass-input-wrap">
+            <input type="password" id="emp-new-pass" placeholder="min. 4 znaki" />
+            <button class="pass-toggle" onclick="togglePass('emp-new-pass', this)">👁</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Powtórz nowe hasło</label>
+          <div class="pass-input-wrap">
+            <input type="password" id="emp-new-pass2" placeholder="••••••" />
+            <button class="pass-toggle" onclick="togglePass('emp-new-pass2', this)">👁</button>
+          </div>
+        </div>
+        <button class="btn btn-secondary" onclick="changeEmployeePassword()">💾 Zmień hasło</button>
+      </div>
+    `;
+  }
+  // Load avatar into the preview
+  setTimeout(() => {
+    const who = currentRole === 'employer' ? 'admin' : 'employee';
+    loadAvatarPreview(who);
+  }, 10);
+  document.getElementById('settings-panel').classList.add('open');
+  document.getElementById('settings-backdrop').classList.add('open');
+}
+
+function closeSettingsPanel() {
+  document.getElementById('settings-panel').classList.remove('open');
+  document.getElementById('settings-backdrop').classList.remove('open');
+}
+
+// ─────────────────────────────────────────────
+//  CHAT SYSTEM
+// ─────────────────────────────────────────────
+function loadMessages() {
+  const raw = localStorage.getItem('wl_messages');
+  return raw ? JSON.parse(raw) : [];
+}
+function saveMessages(msgs) {
+  localStorage.setItem('wl_messages', JSON.stringify(msgs));
+}
+
+// convId = employeeId (conversation is always between admin and one employee)
+let activeChatConvId = null;
+
+function getUnreadCount(convId, reader) {
+  // reader = 'employer' or employeeId
+  return loadMessages().filter(m => m.convId === convId && !m.readBy?.includes(reader)).length;
+}
+
+function getTotalUnread() {
+  if (!currentRole) return 0;
+  const msgs = loadMessages();
+  if (currentRole === 'employer') {
+    const convIds = [...new Set(msgs.map(m => m.convId))];
+    return convIds.reduce((sum, cid) => sum + msgs.filter(m => m.convId === cid && !m.readBy?.includes('employer')).length, 0);
+  } else {
+    if (!currentUser?.id) return 0;
+    return msgs.filter(m => m.convId === currentUser.id && !m.readBy?.includes(currentUser.id)).length;
+  }
+}
+
+function updateUnreadBadge() {
+  const count = getTotalUnread();
+  const badge = document.getElementById('chat-unread-badge');
+  const dropBadge = document.getElementById('dropdown-unread');
+  if (badge) {
+    badge.style.display = count > 0 ? 'block' : 'none';
+    badge.textContent = count > 9 ? '9+' : count;
+  }
+  if (dropBadge) {
+    dropBadge.style.display = count > 0 ? 'inline-block' : 'none';
+    dropBadge.textContent = count > 9 ? '9+' : count;
+  }
+}
+
+function markConvAsRead(convId) {
+  const msgs = loadMessages();
+  const reader = currentRole === 'employer' ? 'employer' : currentUser.id;
+  msgs.forEach(m => {
+    if (m.convId === convId) {
+      if (!m.readBy) m.readBy = [];
+      if (!m.readBy.includes(reader)) m.readBy.push(reader);
+    }
+  });
+  saveMessages(msgs);
+  updateUnreadBadge();
+}
+
+function openChatPanel() {
+  const panel = document.getElementById('chat-panel');
+  const backdrop = document.getElementById('chat-backdrop');
+  panel.classList.add('open');
+  backdrop.classList.add('open');
+
+  if (currentRole === 'employer') {
+    showConvList();
+  } else {
+    // Employee always chats with employer
+    openConversation(currentUser.id);
+  }
+}
+
+function closeChatPanel() {
+  document.getElementById('chat-panel').classList.remove('open');
+  document.getElementById('chat-backdrop').classList.remove('open');
+  activeChatConvId = null;
+}
+
+function showConvList() {
+  const { employees } = loadState();
+  document.getElementById('chat-conv-list-view').style.display = 'flex';
+  document.getElementById('chat-window-view').style.display = 'none';
+  document.getElementById('chat-empty-view').style.display = 'none';
+
+  const msgs = loadMessages();
+  const list = document.getElementById('chat-conv-list');
+  if (!employees.length) {
+    list.innerHTML = `<div style="padding:2rem;text-align:center;color:var(--muted);font-size:0.78rem;">Brak pracowników do napisania.</div>`;
+    return;
+  }
+  list.innerHTML = employees.map(emp => {
+    const empMsgs = msgs.filter(m => m.convId === emp.id);
+    const last = empMsgs[empMsgs.length - 1];
+    const unread = empMsgs.filter(m => !m.readBy?.includes('employer')).length;
+    const initials = emp.name.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2);
+    const avatarKey = 'wl_avatar_' + emp.id;
+    const avatarData = localStorage.getItem(avatarKey);
+    const avatarHTML = avatarData ? `<img src="${avatarData}" />` : initials;
+    const timeStr = last ? formatMsgTime(last.ts) : '';
+    const preview = last ? (last.text.length > 28 ? last.text.slice(0,28)+'…' : last.text) : 'Brak wiadomości';
+    return `
+      <div class="chat-conv-item" onclick="openConversation('${emp.id}')">
+        <div class="chat-conv-avatar">${avatarHTML}</div>
+        <div class="chat-conv-info">
+          <div class="chat-conv-name">${emp.name}</div>
+          <div class="chat-conv-preview">${preview}</div>
+        </div>
+        <div class="chat-conv-meta">
+          <div class="chat-conv-time">${timeStr}</div>
+          ${unread > 0 ? `<div class="chat-conv-unread">${unread}</div>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function openConversation(empId) {
+  const { employees } = loadState();
+  activeChatConvId = empId;
+
+  // Determine partner info
+  let partnerName, partnerSub, avatarHTML;
+  if (currentRole === 'employer') {
+    const emp = employees.find(e => e.id === empId);
+    if (!emp) return;
+    partnerName = emp.name;
+    partnerSub = emp.position;
+    const ad = localStorage.getItem('wl_avatar_' + empId);
+    const initials = emp.name.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2);
+    avatarHTML = ad ? `<img src="${ad}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;" />` : initials;
+  } else {
+    partnerName = 'Administrator';
+    partnerSub = '👔 Pracodawca';
+    const ad = localStorage.getItem('wl_avatar_admin');
+    avatarHTML = ad ? `<img src="${ad}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;" />` : '👔';
+  }
+
+  document.getElementById('chat-conv-list-view').style.display = 'none';
+  document.getElementById('chat-window-view').style.display = 'flex';
+  document.getElementById('chat-empty-view').style.display = 'none';
+
+  document.getElementById('chat-window-name').textContent = partnerName;
+  document.getElementById('chat-window-sub').textContent = partnerSub;
+  document.getElementById('chat-window-avatar').innerHTML = avatarHTML;
+  document.getElementById('chat-back-btn').style.display = currentRole === 'employer' ? 'block' : 'none';
+
+  const sendBtn = document.getElementById('chat-send-btn');
+  if (sendBtn) sendBtn.className = 'chat-send-btn' + (currentRole === 'employer' ? ' employer' : '');
+
+  markConvAsRead(empId);
+  renderMessages(empId);
+}
+
+function backToConvList() {
+  activeChatConvId = null;
+  showConvList();
+}
+
+function renderMessages(convId) {
+  const msgs = loadMessages().filter(m => m.convId === convId);
+  const container = document.getElementById('chat-messages');
+
+  if (!msgs.length) {
+    container.innerHTML = `<div style="text-align:center;color:var(--muted);font-size:0.75rem;padding:2rem;">Brak wiadomości. Napisz pierwszy!</div>`;
+    return;
+  }
+
+  let html = '';
+  let lastDate = '';
+  msgs.forEach(msg => {
+    const d = new Date(msg.ts);
+    const dateLabel = d.toLocaleDateString('pl-PL', { day:'2-digit', month:'long' });
+    if (dateLabel !== lastDate) {
+      html += `<div class="chat-date-sep"><span>${dateLabel}</span></div>`;
+      lastDate = dateLabel;
+    }
+    const isSent = (currentRole === 'employer' && msg.sender === 'employer') ||
+                   (currentRole === 'employee' && msg.sender === currentUser.id);
+    const timeStr = d.toLocaleTimeString('pl-PL', { hour:'2-digit', minute:'2-digit' });
+    html += `<div class="chat-msg ${isSent ? 'sent' : 'received'}${msg.sender === 'employer' ? ' employer-msg' : ''}">
+      ${escapeHtml(msg.text)}
+      <span class="chat-msg-time">${timeStr}</span>
+    </div>`;
+  });
+  container.innerHTML = html;
+  container.scrollTop = container.scrollHeight;
+}
+
+function sendMessage() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text || !activeChatConvId) return;
+
+  const msgs = loadMessages();
+  const senderId = currentRole === 'employer' ? 'employer' : currentUser.id;
+  msgs.push({
+    id: 'msg_' + Date.now(),
+    convId: activeChatConvId,
+    sender: senderId,
+    text,
+    ts: new Date().toISOString(),
+    readBy: [senderId]
+  });
+  saveMessages(msgs);
+  input.value = '';
+  input.style.height = 'auto';
+  renderMessages(activeChatConvId);
+  updateUnreadBadge();
+  // Refresh conv list in background
+  if (currentRole === 'employer') {
+    // don't switch away from chat window
+  }
+}
+
+function chatInputKeydown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function autoResizeChatInput(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
+
+function formatMsgTime(ts) {
+  const d = new Date(ts);
+  const now = new Date();
+  const diff = now - d;
+  if (diff < 60000) return 'teraz';
+  if (diff < 3600000) return Math.floor(diff/60000) + ' min';
+  if (d.toDateString() === now.toDateString()) return d.toLocaleTimeString('pl-PL', {hour:'2-digit',minute:'2-digit'});
+  return d.toLocaleDateString('pl-PL', {day:'2-digit',month:'2-digit'});
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+
+// Poll for new messages every 3 seconds when chat is open
+setInterval(() => {
+  if (!currentRole) return;
+  if (activeChatConvId) {
+    markConvAsRead(activeChatConvId);
+    renderMessages(activeChatConvId);
+  }
+  updateUnreadBadge();
+  if (currentRole === 'employer' && document.getElementById('chat-conv-list-view')?.style.display !== 'none') {
+    showConvList();
+  }
+}, 3000);
+
+// ─────────────────────────────────────────────
+//  AVATAR MANAGEMENT
+// ─────────────────────────────────────────────
+function getAvatarKey() {
+  if (currentRole === 'employer') return 'wl_avatar_admin';
+  return 'wl_avatar_' + currentUser.id;
+}
+
+function handleAvatarUpload(who, input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) { toast('Plik jest za duży (maks. 2MB)', 'error'); return; }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const dataUrl = e.target.result;
+    const key = who === 'admin' ? 'wl_avatar_admin' : 'wl_avatar_' + currentUser.id;
+    localStorage.setItem(key, dataUrl);
+    loadAvatarPreview(who);
+    updateTopbarAvatar();
+    if (who === 'employee') renderEmployees_safe();
+    toast('Zdjęcie profilowe zaktualizowane!');
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeAvatar(who) {
+  const key = who === 'admin' ? 'wl_avatar_admin' : 'wl_avatar_' + currentUser.id;
+  localStorage.removeItem(key);
+  loadAvatarPreview(who);
+  updateTopbarAvatar();
+  if (who === 'employee') renderEmployees_safe();
+  toast('Zdjęcie usunięte');
+}
+
+function loadAvatarPreview(who) {
+  const key = who === 'admin' ? 'wl_avatar_admin' : 'wl_avatar_' + currentUser.id;
+  const previewId = who === 'admin' ? 'admin-avatar-preview' : 'emp-avatar-preview';
+  const el = document.getElementById(previewId);
+  if (!el) return;
+  const data = localStorage.getItem(key);
+  if (data) {
+    el.innerHTML = `<img src="${data}" alt="Avatar" />`;
+  } else {
+    el.innerHTML = who === 'admin' ? '👔' : '💼';
+  }
+}
+
+function updateTopbarAvatar() {
+  const wrap = document.getElementById('topbar-avatar-wrap');
+  if (!wrap) return;
+  const key = currentRole === 'employer' ? 'wl_avatar_admin' : 'wl_avatar_' + (currentUser?.id || '');
+  const data = localStorage.getItem(key);
+  if (data) {
+    wrap.innerHTML = `<img src="${data}" alt="Avatar" class="topbar-avatar" />`;
+  } else {
+    const initials = currentRole === 'employer'
+      ? 'A'
+      : (currentUser?.name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2);
+    const bg = currentRole === 'employer' ? 'var(--accent)' : 'var(--employee)';
+    wrap.innerHTML = `<div class="topbar-avatar-placeholder" style="background:${bg};color:#fff;">${initials}</div>`;
+  }
+  updateDropdownInfo();
+}
+
+// Safe re-render of employees only if on that tab
+function renderEmployees_safe() {
+  const el = document.getElementById('employees-grid');
+  if (el && document.getElementById('tab-employees').style.display !== 'none') {
+    renderEmployees();
+  }
+}
+
+// ─────────────────────────────────────────────
+//  CHANGE ADMIN LOGIN
+// ─────────────────────────────────────────────
+function changeAdminLogin() {
+  const newLogin = document.getElementById('admin-new-login').value.trim();
+  if (newLogin.length < 3) { toast('Login musi mieć min. 3 znaki', 'error'); return; }
+  localStorage.setItem('wl_admin_login', newLogin);
+  const displayEl = document.getElementById('admin-current-login-display');
+  if (displayEl) displayEl.value = newLogin;
+  document.getElementById('admin-new-login').value = '';
+  toast('Login administratora zmieniony!');
+}
+
+// ─────────────────────────────────────────────
+//  FORGOT CREDENTIALS (on login screen)
+// ─────────────────────────────────────────────
+function showForgotCredentials() {
+  document.getElementById('forgot-new-login').value = '';
+  document.getElementById('forgot-new-pass').value = '';
+  document.getElementById('forgot-new-pass2').value = '';
+  document.getElementById('forgot-modal').style.display = 'flex';
+}
+
+function closeForgotModal() {
+  document.getElementById('forgot-modal').style.display = 'none';
+}
+
+function confirmForgotCredentials() {
+  const newLogin = document.getElementById('forgot-new-login').value.trim();
+  const newPass  = document.getElementById('forgot-new-pass').value;
+  const newPass2 = document.getElementById('forgot-new-pass2').value;
+
+  let changed = false;
+
+  if (newLogin) {
+    if (newLogin.length < 3) { toast('Login musi mieć min. 3 znaki', 'error'); return; }
+    localStorage.setItem('wl_admin_login', newLogin);
+    changed = true;
+  }
+
+  if (newPass) {
+    if (newPass.length < 4) { toast('Hasło musi mieć min. 4 znaki', 'error'); return; }
+    if (newPass !== newPass2) { toast('Hasła nie są identyczne', 'error'); return; }
+    localStorage.setItem('wl_admin_pass', newPass);
+    changed = true;
+  }
+
+  if (!changed) { toast('Nic nie wpisałeś — brak zmian', 'error'); return; }
+
+  closeForgotModal();
+  // Show updated login hint
+  if (newLogin) document.getElementById('emp-login').value = newLogin;
+  toast('Dane logowania zaktualizowane!');
+}
+
+// ─────────────────────────────────────────────
+//  PASSWORD MANAGEMENT
+// ─────────────────────────────────────────────
+
+// Toggle show/hide for any password input
+function togglePass(inputId, btn) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  if (input.type === 'password') {
+    input.type = 'text';
+    btn.textContent = '🙈';
+  } else {
+    input.type = 'password';
+    btn.textContent = '👁';
+  }
+}
+
+// Toggle employee password visibility on employee card
+function toggleEmpPass(empId, plainPass, btn) {
+  const el = document.getElementById('pass-val-' + empId);
+  if (!el) return;
+  if (el.dataset.shown === '1') {
+    el.textContent = '•'.repeat(plainPass.length);
+    el.dataset.shown = '0';
+    btn.textContent = '👁';
+  } else {
+    el.textContent = plainPass;
+    el.dataset.shown = '1';
+    btn.textContent = '🙈';
+  }
+}
+
+// Admin resets employee password directly
+function showResetEmpPass(empId) {
+  const { employees } = loadState();
+  const emp = employees.find(e => e.id === empId);
+  if (!emp) return;
+  document.getElementById('reset-emp-id').value = empId;
+  document.getElementById('reset-emp-label').textContent = `Nowe hasło dla: ${emp.name}`;
+  document.getElementById('reset-emp-new-pass').value = '';
+  document.getElementById('reset-emp-new-pass').type = 'password';
+  document.getElementById('reset-pass-modal').style.display = 'flex';
+}
+
+function closeResetPassModal() {
+  document.getElementById('reset-pass-modal').style.display = 'none';
+}
+
+function confirmResetEmpPass() {
+  const empId = document.getElementById('reset-emp-id').value;
+  const newPass = document.getElementById('reset-emp-new-pass').value;
+  if (newPass.length < 4) { toast('Hasło musi mieć min. 4 znaki', 'error'); return; }
+  const { employees } = loadState();
+  const idx = employees.findIndex(e => e.id === empId);
+  if (idx === -1) return;
+  employees[idx].password = newPass;
+  // If this employee is currently logged in, update currentUser
+  if (currentRole === 'employee' && currentUser.id === empId) {
+    currentUser.password = newPass;
+  }
+  saveEmployees(employees);
+  closeResetPassModal();
+  renderEmployees();
+  toast(`Hasło pracownika zmienione!`);
+}
+
+// Change admin password - no old password required
+function changeAdminPassword() {
+  const newPass = document.getElementById('admin-new-pass').value;
+  const newPass2 = document.getElementById('admin-new-pass2').value;
+  if (newPass.length < 4) { toast('Nowe hasło musi mieć min. 4 znaki', 'error'); return; }
+  if (newPass !== newPass2) { toast('Hasła nie są identyczne', 'error'); return; }
+  localStorage.setItem('wl_admin_pass', newPass);
+  document.getElementById('admin-new-pass').value = '';
+  document.getElementById('admin-new-pass2').value = '';
+  toast('Hasło administratora zmienione!');
+}
+
+// Change employee own password
+function changeEmployeePassword() {
+  const oldPass = document.getElementById('emp-old-pass').value;
+  const newPass = document.getElementById('emp-new-pass').value;
+  const newPass2 = document.getElementById('emp-new-pass2').value;
+  if (oldPass !== currentUser.password) { toast('Aktualne hasło jest nieprawidłowe', 'error'); return; }
+  if (newPass.length < 4) { toast('Nowe hasło musi mieć min. 4 znaki', 'error'); return; }
+  if (newPass !== newPass2) { toast('Hasła nie są identyczne', 'error'); return; }
+  const { employees } = loadState();
+  const idx = employees.findIndex(e => e.id === currentUser.id);
+  if (idx === -1) return;
+  employees[idx].password = newPass;
+  currentUser.password = newPass;
+  saveEmployees(employees);
+  document.getElementById('emp-old-pass').value = '';
+  document.getElementById('emp-new-pass').value = '';
+  document.getElementById('emp-new-pass2').value = '';
+  toast('Hasło zmienione pomyślnie!');
+}
+
+// ─────────────────────────────────────────────
+//  TOAST
+// ─────────────────────────────────────────────
+function toast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = type === 'error' ? 'var(--danger)' : 'var(--success)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ─────────────────────────────────────────────
+//  CLOSE MODAL ON OVERLAY CLICK
+// ─────────────────────────────────────────────
+document.getElementById('forgot-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeForgotModal();
+});
+
+document.getElementById('reset-pass-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeResetPassModal();
+});
+
+document.getElementById('add-emp-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+document.getElementById('add-client-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeClientModal();
+});
+
+// ENTER key shortcuts
+document.getElementById('emp-pass').addEventListener('keydown', e => { if(e.key==='Enter') loginEmployer(); });
+document.getElementById('emp-worker-pass').addEventListener('keydown', e => { if(e.key==='Enter') loginEmployee(); });
+
+// ESC closes log detail
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.getElementById('log-detail-overlay').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+});
+</script>
+</body>
+</html>
